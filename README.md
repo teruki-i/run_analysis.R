@@ -1,5 +1,4 @@
 # run_analysis.R
-This is my code for the Getting and Cleaning Data course project
 
 This code uses data collected from accelerometers from the Samsung Galaxy S smartphone.
 
