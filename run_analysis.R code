@@ -1,0 +1,119 @@
+##download and unzip file into working directory
+
+test_dat_x<-read.table("UCI HAR Dataset/test/X_test.txt")
+train_dat_x<-read.table("UCI HAR Dataset/train/X_train.txt")
+##objects for test and train data sets
+
+test_sub<-read.table("UCI HAR Dataset/test/subject_test.txt")
+train_sub<-read.table("UCI HAR Dataset/train/subject_train.txt")
+subject<-rbind(test_sub,train_sub)
+names(subject)<-"subject"
+
+dat<-rbind(test_dat_x,train_dat_x)
+##binds together test and train data into one data frame
+##accomplishes step 1
+
+features<-read.table("UCI HAR Dataset/features.txt")
+##second column is labels for vectors in test and train data
+
+colnames(dat)<-features[,2]
+##renames data frame columns to names from features
+##accoplishes step 4
+
+test_dat_y<-read.table("UCI HAR Dataset/test/y_test.txt")
+train_dat_y<-read.table("UCI HAR Dataset/train/y_train.txt")
+##objects for test and train data set activity numbers
+
+acts<-rbind(test_dat_y,train_dat_y)
+##combine activity numbers from test and train into one data frame
+
+dat_means<-grep("mean()",names(dat),value = T, fixed = T)
+##pulls names of variable that specifically have "mean()" in name, places them in vector
+##"fixed=T" is used so that it doesn't include variables with "meanFreq"
+
+dat_std<-grep("std",names(dat),value = T)
+##pulls names of variable that have "std" in name
+
+means_std<-c(dat_means,dat_std)
+##combine mean and std variable names into one vector
+
+means_std_sorted<-sort(means_std)
+##create alphabetized version of mean_std
+
+dat_means_std<-dat[,means_std_sorted]
+##subsets data for only columns with means and std
+##accomplishes step 2
+
+names(acts)<-"activity"
+##rename column to "activity"
+
+dat_means_std<-cbind(acts,dat_means_std)
+##bind "activity" column to data frame
+
+dat_means_std$activity<-as.character(dat_means_std$activity)
+dat_means_std$activity[dat_means_std$activity=="1"]<-"Walking"
+dat_means_std$activity[dat_means_std$activity=="2"]<-"Walking_Upstairs"
+dat_means_std$activity[dat_means_std$activity=="3"]<-"Walking_Downstairs"
+dat_means_std$activity[dat_means_std$activity=="4"]<-"Sitting"
+dat_means_std$activity[dat_means_std$activity=="5"]<-"Standing"
+dat_means_std$activity[dat_means_std$activity=="6"]<-"Laying"
+##replaced activity numbers with names of corresponding activities
+##accomplishes step 3
+
+
+##EVERYTHING BELOW IS FOR STEP 5
+
+dat_with_sub<-cbind(subject,dat_means_std)
+##creates new data frame with data from dat_means_std and subject identifier
+
+dat_with_sub$activity[dat_with_sub$activity=="Walking"]<-"1"
+dat_with_sub$activity[dat_with_sub$activity=="Walking_Upstairs"]<-"2"
+dat_with_sub$activity[dat_with_sub$activity=="Walking_Downstairs"]<-"3"
+dat_with_sub$activity[dat_with_sub$activity=="Sitting"]<-"4"
+dat_with_sub$activity[dat_with_sub$activity=="Standing"]<-"5"
+dat_with_sub$activity[dat_with_sub$activity=="Laying"]<-"6"
+dat_with_sub$activity<-as.numeric(dat_with_sub$activity)
+##changing activity names back to number to make for loop below easier
+
+x<-data.frame()
+##empty data frame to throw data into
+
+for(i in 1:30){
+    dat_i<-dat_with_sub[which(dat_with_sub$subject==i),]
+    ##subsets data for each subject in each iteration of loop
+    
+    dat_walk<-dat_i[which(dat_i$activity==1),]
+    dat_walk_u<-dat_i[which(dat_i$activity==2),]
+    dat_walk_d<-dat_i[which(dat_i$activity==3),]
+    dat_sit<-dat_i[which(dat_i$activity==4),]
+    dat_stand<-dat_i[which(dat_i$activity==5),]
+    dat_lay<-dat_i[which(dat_i$activity==6),]
+    ##subsets data further for each activity
+    
+    walk_means<-colMeans(dat_walk, na.rm=T)
+    walk_u_means<-colMeans(dat_walk_u, na.rm=T)
+    walk_d_means<-colMeans(dat_walk_d, na.rm=T)
+    sit_means<-colMeans(dat_sit, na.rm=T)
+    stand_means<-colMeans(dat_stand, na.rm=T)
+    lay_means<-colMeans(dat_lay, na.rm=T)
+    ##calculates column means for each activity
+    
+    x<-rbind(x,walk_means, walk_u_means, walk_d_means,sit_means, stand_means, lay_means)
+    ##binds column means from above into empty data frame
+}
+
+colnames(x)<-c("subject",colnames(dat_means_std))
+##new data frame doesn't have column names from dat_means_std
+##so adding column names from before along with "subject" column name
+
+x$activity<-as.character(x$activity)
+x$activity[x$activity=="1"]<-"Walking"
+x$activity[x$activity=="2"]<-"Walking_Upstairs"
+x$activity[x$activity=="3"]<-"Walking_Downstairs"
+x$activity[x$activity=="4"]<-"Sitting"
+x$activity[x$activity=="5"]<-"Standing"
+x$activity[x$activity=="6"]<-"Laying"
+##changing activity numbers in data frame x to activity names
+
+write.table(x,"run_analysis.txt",row.name=FALSE)
+##creates txt file for data set created in step 5
